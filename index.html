@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="수입검사실 품질 대시보드(Power BI) 구축 — 프로젝트 제안서" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/variable/woff2/SUIT-Variable.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['SUIT Variable', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              600: '#0284c7',
+              700: '#0369a1'
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 30px -18px rgba(15, 23, 42, 0.35)'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: light; font-size: 16px; /* 12pt minimum base */ }
+    body {
+      font-family: 'SUIT Variable', sans-serif;
+      font-size: 1rem; /* 16px = 12pt */
+      background-image:
+        radial-gradient(circle at 12% 18%, rgba(14, 165, 233, 0.08), transparent 42%),
+        radial-gradient(circle at 88% 82%, rgba(2, 132, 199, 0.06), transparent 48%);
+    }
+
+    /* ─── doc-content typography (from harmony-link-be) ─── */
+    .doc-content h1, .doc-content h2, .doc-content h3, .doc-content h4 {
+      color: rgb(15 23 42); font-weight: 700; letter-spacing: -0.01em;
+      line-height: 1.3; margin-top: 1.6em; margin-bottom: 0.7em;
+    }
+    .doc-content h1 { font-size: 2rem; margin-top: 0.2em; }
+    .doc-content h2 { font-size: 1.4rem; }
+    .doc-content h3 { font-size: 1.15rem; }
+    .doc-content p, .doc-content li {
+      color: rgb(51 65 85); line-height: 1.8; font-size: 1rem;
+    }
+    .doc-content p, .doc-content ul, .doc-content ol,
+    .doc-content table, .doc-content pre, .doc-content blockquote {
+      margin-bottom: 1rem;
+    }
+    .doc-content ul, .doc-content ol { padding-left: 1.2rem; }
+    .doc-content ul { list-style: disc; }
+    .doc-content ol { list-style: decimal; }
+    .doc-content table {
+      width: 100%; border-collapse: collapse;
+      border: 1px solid rgb(226 232 240); border-radius: 0.75rem;
+      overflow: hidden; font-size: 1rem;
+    }
+    .doc-content th, .doc-content td {
+      border: 1px solid rgb(226 232 240); padding: 0.7rem 0.8rem;
+      text-align: left; vertical-align: top;
+    }
+    .doc-content th {
+      background: rgb(248 250 252); color: rgb(30 41 59); font-weight: 600;
+    }
+    .doc-content pre, .doc-content code {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+    .doc-content pre {
+      background: rgb(15 23 42); color: rgb(226 232 240);
+      padding: 1rem; border-radius: 0.75rem; overflow-x: auto;
+      font-size: 1rem; line-height: 1.65;
+    }
+    .doc-content p code, .doc-content li code,
+    .doc-content td code, .doc-content th code {
+      background: rgb(241 245 249); color: rgb(15 23 42);
+      border: 1px solid rgb(226 232 240); border-radius: 0.4rem;
+      padding: 0.08rem 0.4rem; font-size: 1em;
+    }
+    .doc-content blockquote {
+      border-left: 3px solid rgb(14 165 233); padding-left: 0.85rem;
+      color: rgb(71 85 105); background: rgb(240 249 255);
+      border-radius: 0.5rem; padding-top: 0.55rem; padding-bottom: 0.55rem;
+    }
+
+    /* ─── 12pt (16px) minimum font size ─── */
+    .text-xs { font-size: 1rem !important; }
+
+    /* ─── Timeline ─── */
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: ''; position: absolute; left: 0.6rem; top: 0.25rem; bottom: 0.25rem;
+      width: 2px; background: rgb(186 230 253);
+    }
+    .timeline-item { position: relative; margin-bottom: 1.75rem; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -1.65rem; top: 0.35rem;
+      width: 0.75rem; height: 0.75rem; border-radius: 50%;
+      background: rgb(2 132 199); border: 3px solid rgb(224 242 254);
+    }
+
+    /* ─── Page sections ─── */
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    /* ─── Mobile sidebar toggle ─── */
+    #sidebar-backdrop { display: none; }
+    #sidebar-backdrop.open { display: block; }
+    @media (max-width: 1023px) {
+      #sidebar { transform: translateX(-100%); transition: transform 0.2s ease; position: fixed; top: 0; left: 0; z-index: 40; height: 100vh; width: 80vw; max-width: 320px; }
+      #sidebar.open { transform: translateX(0); }
+    }
+  </style>
+  <title>수입검사실 품질 대시보드(Power BI) 구축 — 프로젝트 제안서</title>
+</head>
+<body class="text-slate-800 font-sans antialiased">
+  <div class="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
+
+    <!-- ─── Header ─── -->
+    <header class="mb-6 rounded-2xl border border-slate-200/70 bg-white/85 px-5 py-3 shadow-soft backdrop-blur">
+      <!-- Row 1: menu + logo (mobile & desktop) / title right-aligned on desktop -->
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="sidebar-toggle" class="lg:hidden inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700 hover:border-sky-300 hover:text-sky-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          메뉴
+        </button>
+        <a href="#home" class="inline-flex items-center shrink-0 text-sm font-bold tracking-tight text-slate-800">
+          프로젝트 제안서
+        </a>
+        <!-- Desktop: push to right. Mobile: hidden here, shown as row 2 below -->
+        <div class="hidden sm:block ml-auto text-right">
+          <p class="text-sm font-semibold tracking-[0.04em] text-sky-700/90">수입검사실 품질 대시보드(Power BI) 구축</p>
+          <p class="text-xs text-slate-400">프로젝트 제안서</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+
+      <!-- ─── Sidebar ─── -->
+      <div id="sidebar-backdrop" class="fixed inset-0 bg-black/30 z-30 lg:hidden" onclick="closeSidebar()"></div>
+      <aside id="sidebar" class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-soft backdrop-blur lg:sticky lg:top-6 lg:h-[calc(100vh-4rem)] lg:overflow-auto">
+        <!-- sidebar nav starts directly -->
+        <nav id="nav" class="space-y-1">
+          <a href="#home" data-page="home" class="nav-link block rounded-xl border px-3 py-2 text-sm border-sky-200 bg-sky-50 font-medium text-sky-700">홈</a>
+          <div class="my-3 border-t border-slate-200"></div>
+          <p class="mb-2 mt-1 px-1 text-sm font-semibold tracking-[0.14em] text-slate-400">제안서</p>
+          <a href="#overview" data-page="overview" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">프로젝트 소개</a>
+          <a href="#estimate" data-page="estimate" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">견적서</a>
+          <a href="#manday" data-page="manday" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">공수계산서</a>
+          <a href="#prd" data-page="prd" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">PRD</a>
+          <div class="my-3 border-t border-slate-200"></div>
+          <p class="mb-2 mt-1 px-1 text-sm font-semibold tracking-[0.14em] text-slate-400">일정 & 경험</p>
+          <a href="#timeline" data-page="timeline" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">일정 제안</a>
+          <a href="#portfolio" data-page="portfolio" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">유사 프로젝트 경험</a>
+        </nav>
+      </aside>
+
+      <!-- ─── Main Content ─── -->
+      <main class="min-w-0">
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- PAGE: Home (Landing — shows everything)        -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="page-home" class="page-section active space-y-6">
+          <!-- Hero -->
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-6 shadow-soft backdrop-blur md:p-8">
+            <p class="mb-2 text-xs font-semibold tracking-[0.2em] text-sky-700/80">프로젝트 제안서</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">수입검사실 품질 대시보드(Power BI) 구축</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600 md:text-base">ERP(수입·완성검사) · QMS(부적합관리) · 오프라인 엑셀(ITP 정합성) 3개 소스를 하나의 Power Query ETL로 통합하고, 14개 KPI · 실패비용 · 전년도 비교를 대형 모니터 상시 표출 한 화면에 담습니다. 「원본 대비 KPI 집계 오차 없음」을 최우선 검수 기준으로 삼아, ERP-QMS 코드 통일 · 중복 제거 · S오더↔F오더 매핑 규칙을 모두 정의서로 남겨 검증 가능한 산출물로 인계합니다.</p>
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+              <span class="inline-flex rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-sky-700">7,650,000원 (VAT 별도)</span>
+              <span class="inline-flex rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-sky-700">40일</span>
+              <span class="inline-flex rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-amber-700">BI·DA 데이터 / 통계·대시보드</span>
+              <a href="https://www.wishket.com/project/157127/" target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-sm font-medium text-slate-500 transition hover:border-sky-300 hover:text-sky-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                원본 공고
+              </a>
+            </div>
+          </div>
+
+          <!-- Summary cards grid -->
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <a href="#overview" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">소개</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">프로젝트 소개</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">프로젝트 분석, 핵심 요구사항 정리, 제안 포인트</p>
+            </a>
+            <a href="#estimate" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">비용</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">견적서</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">항목별 비용 산출 근거 및 상세 견적</p>
+            </a>
+            <a href="#manday" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">공수</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">공수계산서</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">기능별 개발 공수(man-day) 산출 내역</p>
+            </a>
+            <a href="#prd" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">기획</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">PRD</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">기능 요구사항 정의서, 사용자 스토리, 기술 제약</p>
+            </a>
+            <a href="#timeline" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">일정</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">일정 제안</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">단계별 마일스톤 및 산출물 일정표</p>
+            </a>
+            <a href="#portfolio" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">경험</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">유사 프로젝트 경험</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">유사 프로젝트 수행 경험 및 기술 스택</p>
+            </a>
+          </div>
+
+          <!-- Quick stats -->
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">14</p>
+              <p class="mt-1 text-xs text-slate-500">대시보드 KPI 구성요소</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">3</p>
+              <p class="mt-1 text-xs text-slate-500">통합 데이터 소스</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">40일</p>
+              <p class="mt-1 text-xs text-slate-500">제안 기간</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">34 M/D</p>
+              <p class="mt-1 text-xs text-slate-500">총 투입 공수</p>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 to-brand-50 p-6 text-center shadow-soft md:p-10">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">함께 만들어 가겠습니다</h2>
+            <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">각 메뉴를 클릭하시면 상세 내용을 확인하실 수 있습니다.</p>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- PAGE: 프로젝트 소개 (Overview)                  -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="page-overview" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>프로젝트 소개</h1>
+              <blockquote>ERP(수입·완성검사) · QMS(부적합관리) · 오프라인 엑셀(ITP 정합성) 3개 소스를 하나의 Power Query ETL로 통합하고, 14개 KPI · 실패비용 · 전년도 비교를 대형 모니터 상시 표출 한 화면에 담습니다. 「원본 대비 KPI 집계 오차 없음」을 최우선 검수 기준으로 삼아, ERP-QMS 코드 통일 · 중복 제거 · S오더↔F오더 매핑 규칙을 모두 정의서로 남겨 검증 가능한 산출물로 인계합니다.</blockquote>
+
+              <h2>프로젝트 개요</h2>
+              <table>
+                <tr><th>항목</th><th>내용</th></tr>
+                <tr><td>프로젝트명</td><td><a href="https://www.wishket.com/project/157127/" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline decoration-sky-300 hover:decoration-sky-500">수입검사실 품질 대시보드(Power BI) 구축</a></td></tr>
+                <tr><td>카테고리</td><td>BI·DA 데이터 / 통계·대시보드</td></tr>
+                <tr><td>제안 금액</td><td>7,650,000원 (VAT 별도)</td></tr>
+                <tr><td>제안 기간</td><td>40일</td></tr>
+                <tr><td>핵심 기술</td><td>Power Query(M) · Power BI(DAX) · 스타 스키마 데이터 모델 · 온프렘 데이터 게이트웨이</td></tr>
+              </table>
+
+              <h2>핵심 요구사항 분석</h2>
+              <ul>
+                                <li><strong>3개 이종 소스 통합</strong> — ERP(수입검사리스트·합부현황·품목·S오더), QMS(부적합등록·부적합정보·협력업체부적합·실패비용·F오더), 네트워크 공유 엑셀(ITP 정합성)을 Power Query 단일 파이프라인으로 추출·정제·통합</li>
+                <li><strong>코드 체계 통일 및 중복 제거</strong> — ERP와 QMS의 상이한 코드 체계를 매핑 테이블로 통일하고, S오더↔F오더 연결로 중복 집계를 제거하여 원본 대비 집계 오차 0 확보</li>
+                <li><strong>14개 KPI 측정값(DAX)</strong> — 전체검사건수, 부적합건수, 부적합률, 공정부적합건수, 공정부적합률, NCR 발행·접수, 검사 건수 추이, 부적합 유형·원인 현황, ITP 정합율(누적·추이), TOP5 부적합 공급업체, 장치별 부적합 건수</li>
+                <li><strong>전월 대비 · 전년 동기 비교</strong> — 화면 구성 초안의 KPI 카드에 전월 실적값과 증감률(▲▼%)이 병기되어 있어, KPI별 기준값·전월값·전년동기값 3종 측정값 세트를 타임 인텔리전스로 구성</li>
+                <li><strong>실패비용 정량화</strong> — QMS 실패비용 데이터를 합의된 산정·배부 기준에 따라 집계하여 기간별 금액으로 표출</li>
+                <li><strong>필터·슬라이서</strong> — 기간·업체·장치에 더해, 화면 초안 우측 상단에 확인되는 검사구분(수입검사 등) 드롭다운 슬라이서 포함. 조건 변경 시 전체 KPI 재계산</li>
+                <li><strong>대형 모니터 상시 표출</strong> — 다크 배경 고대비 커스텀 테마(JSON) 적용, 풀스크린 그리드 최적화로 원거리 가독성 확보</li>
+                <li><strong>무인 자동 새로고침</strong> — 온프렘 데이터 게이트웨이로 ERP·QMS DB 및 엑셀 공유 경로를 최소 일 1회 자동 갱신, 실패 시 이전 데이터 유지 및 알림</li>
+                <li><strong>접근 권한 분리</strong> — 게시 후 지정 인원만 열람 가능하도록 권한 설정, 미승인 사용자 접근 차단</li>
+                <!-- <li>요구사항 1</li> -->
+              </ul>
+
+              <h2>제안 포인트</h2>
+              
+              <h3>1. 「집계 오차 0」을 설계 단계부터 검수 기준으로 고정합니다</h3>
+              <p>본 프로젝트의 최대 리스크는 화면 구현이 아니라 <strong>ERP와 QMS의 코드 체계 차이로 인한 집계 불일치</strong>입니다.
+              착수 직후 데이터 매핑 정의서(코드 매핑 · S오더↔F오더 매핑 규칙)를 먼저 확정하고, 각 마일스톤마다
+              <strong>원본 시스템 조회 결과와 대시보드 수치를 1:1로 대사(reconciliation)</strong>하는 검증표를 산출물로 제출합니다.
+              대사 결과는 검수 시 그대로 증빙으로 사용하실 수 있습니다.</p>
+
+              <h3>2. 화면 구성 초안을 14개 구성요소 단위로 분해하여 공수에 반영했습니다</h3>
+              <p>제공해 주신 화면 구성 초안을 분석한 결과, 단순 카드형이 아닌
+              <strong>이중 Y축 콤보 차트(검사 건수 추이), 누적 막대 + 이중축(장치별 부적합 · ITP 정합율 추이), 도넛 게이지(ITP 정합율 누적실적),
+              구성비(%) 열이 포함된 TOP5 테이블</strong> 등 시각화 유형이 각기 다릅니다.
+              또한 KPI 카드마다 <strong>전월 실적값과 증감률이 병기</strong>되어 있어, 14개 KPI에 대해 기준값·전월값·전년동기값 3종 측정값 세트가 필요합니다.
+              이 구조를 그대로 반영하여 DAX 5 M/D · 대시보드 구현 5.5 M/D로 산정했습니다.</p>
+
+              <h3>3. 대형 모니터 상시 표출을 「기능」이 아닌 「설계 전제」로 다룹니다</h3>
+              <p>상시 표출은 게시 후 풀스크린 버튼을 누르는 것과 다릅니다. 원거리 판독을 위한 폰트 스케일·대비비,
+              무인 환경에서의 자동 페이지 전환, 게이트웨이 새로고침 실패 시 화면 정지 방지, 세션 만료 대응까지 함께 설계해야 합니다.
+              초안의 다크 네이비 배색을 <strong>Power BI 커스텀 테마 파일(JSON)</strong>로 표준화하여 전 페이지에 일관 적용하고,
+              실제 표출 해상도 기준으로 그리드를 확정한 뒤 현장 검증을 거칩니다.</p>
+
+              <h3>4. 발주처 준비 사항의 지연 리스크를 착수 첫 주에 몰아서 해소합니다</h3>
+              <p>본 건은 DB 읽기 계정 · 스키마 · 엑셀 경로 권한 · 코드 정의서 · 실패비용 산정 기준 등
+              <strong>발주처 준비 사항에 일정이 종속</strong>됩니다. 이를 Phase 1(Day 1–6)에 집중 배치하고,
+              필요 항목을 체크리스트로 사전 발송하여 전산팀 협의를 1회 미팅으로 종결하는 것을 목표로 합니다.
+              동시에 데이터 확보 전에도 진행 가능한 데이터 모델 설계 · 테마 제작 · 시각화 프로토타입을 병행하여 대기 시간을 흡수합니다.</p>
+
+              <h3>5. 확장(Full) 범위로의 연결을 전제로 구조를 잡습니다</h3>
+              <p>공고에 정합성 자동 검증 리포트 · 품질/운영 현황 페이지 · 사용자 교육이 확장 범위로 명시되어 있고,
+              고도화 프로젝트 의뢰 예정임을 밝히셨습니다. 이번 단계의 데이터 모델을
+              <strong>페이지 추가만으로 확장 가능한 스타 스키마</strong>로 설계하고, 측정값을 재사용 가능한 단위로 분리하여
+              후속 고도화 시 ETL 재작업이 발생하지 않도록 합니다.</p>
+
+              <h2>사용 기술 및 툴</h2>
+              <h3>개발 기술</h3>
+              <div class="flex flex-wrap gap-2 not-prose mb-4">
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Power BI Desktop</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Power Query (M)</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">DAX</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">스타 스키마 모델링</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">On-premises Data Gateway</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Power BI Service</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">SQL (ERP/QMS 직접 조회)</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Excel / 네트워크 공유 경로</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Power BI Theme JSON</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">행 수준 보안(RLS)</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Tabular Editor</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">DAX Studio</span>
+                <!-- <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">React</span> -->
+              </div>
+              <h3>협업 및 커뮤니케이션</h3>
+              <div class="flex flex-wrap gap-2 not-prose">
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">카카오톡 / 이메일 (일일 공유)</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Zoom / Google Meet (주간 미팅)</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">현장 미팅 (전산팀 협의·표출 검증)</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Notion / Google Docs (문서 공유)</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">이슈 트래킹 시트</span>
+                <!-- <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">Slack</span> -->
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- PAGE: 견적서 (Estimate)                         -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="page-estimate" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>견적서</h1>
+              <blockquote>본 견적서는 프로젝트 요구사항 분석을 기반으로 산출되었습니다.</blockquote>
+
+              <h2>견적 요약</h2>
+              <table>
+                <tr><th>항목</th><th>내용</th></tr>
+                <tr><td>프로젝트명</td><td>수입검사실 품질 대시보드(Power BI) 구축</td></tr>
+                <tr><td>제안 금액</td><td><strong>7,650,000원 (VAT 별도)</strong></td></tr>
+                <tr><td>제안 기간</td><td>40일</td></tr>
+                <tr><td>견적 유효기간</td><td>제안일로부터 30일</td></tr>
+              </table>
+
+              <h2>상세 견적 내역</h2>
+              <table>
+                <thead>
+                  <tr><th>구분</th><th>항목</th><th>수량</th><th>단가</th><th>금액</th></tr>
+                </thead>
+                <tbody>
+                                    <tr><td>분석/설계</td><td>착수 협의 · 데이터 소스 및 스키마 분석</td><td>3 M/D</td><td>225,000원</td><td>675,000원</td></tr>
+                  <tr><td>데이터</td><td>Power Query ETL 파이프라인 (ERP 4 · QMS 5 · 엑셀 ITP)</td><td>6 M/D</td><td>225,000원</td><td>1,350,000원</td></tr>
+                  <tr><td>데이터</td><td>정제 · ERP-QMS 코드 통일 · 중복 제거 · S오더↔F오더 매핑</td><td>4 M/D</td><td>225,000원</td><td>900,000원</td></tr>
+                  <tr><td>데이터</td><td>데이터 모델링 (스타 스키마 · 관계 설정 · 날짜 테이블)</td><td>2 M/D</td><td>225,000원</td><td>450,000원</td></tr>
+                  <tr><td>로직</td><td>14개 KPI 측정값(DAX) · 전월/전년 비교 · 실패비용 산출</td><td>5 M/D</td><td>225,000원</td><td>1,125,000원</td></tr>
+                  <tr><td>시각화</td><td>메인 대시보드 14개 구성요소 · 커스텀 테마 · 풀스크린 최적화</td><td>5.5 M/D</td><td>225,000원</td><td>1,237,500원</td></tr>
+                  <tr><td>시각화</td><td>전년도 비교·추이 페이지 · 슬라이서(검사구분·기간·업체·장치)</td><td>2 M/D</td><td>225,000원</td><td>450,000원</td></tr>
+                  <tr><td>운영</td><td>온프렘 게이트웨이 구성 · 새로고침 스케줄 · 게시 · 권한 설정</td><td>2 M/D</td><td>225,000원</td><td>450,000원</td></tr>
+                  <tr><td>QA</td><td>원본 대비 대사 검증 · 통합 테스트 · 현장 표출 검증</td><td>2.5 M/D</td><td>225,000원</td><td>562,500원</td></tr>
+                  <tr><td>문서</td><td>산출물 문서 5종 (모델·DAX 정의서, 매핑 정의서, 운영 문서 등)</td><td>2 M/D</td><td>225,000원</td><td>450,000원</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><th colspan="4">합계 (VAT 별도)</th><th>7,650,000원 (VAT 별도)</th></tr>
+                </tfoot>
+              </table>
+
+              <h2>산정 근거</h2>
+              
+              <ul>
+                <li><strong>산정 방식</strong> — 총 34 M/D × 225,000원/M·D = 7,650,000원 (VAT 별도). 발주처 예상 금액 9,000,000원 대비 <strong>85% 수준</strong>으로 제안합니다.</li>
+                <li><strong>공수 비중</strong> — 데이터 엔지니어링(ETL·정제·모델링) 12 M/D(35.3%)가 가장 큰 비중입니다. 본 프로젝트의 난이도는 시각화가 아니라 3개 이종 소스의 코드 통일과 중복 제거에 있다고 판단했습니다.</li>
+                <li><strong>화면 초안 반영분</strong> — 이중 Y축 콤보 2종, 누적 막대 2종, 도넛 게이지, 구성비 포함 TOP5 테이블, 전월 증감 병기 KPI 카드 7종 등 시각화 유형이 상이하여 단순 카드 배치 대비 공수를 상향 반영했습니다.</li>
+                <li><strong>검증 공수 별도 계상</strong> — 「원본 대비 KPI 집계 오차 없음」이 검수 기준이므로, 대사 검증을 QA 항목으로 분리하여 2.5 M/D를 명시적으로 계상했습니다.</li>
+                <li><strong>제외 항목</strong> — Power BI 라이선스(발주처 부담), 표출용 모니터·게이트웨이 서버 등 하드웨어, ERP·QMS 시스템 자체 기능 변경은 견적에 포함하지 않았습니다.</li>
+                <li><strong>지급 조건 (제안)</strong> — 착수금 30% / 중도금 40%(M3 KPI·DAX 완료) / 잔금 30%(검수 완료). 발주처 기준에 맞춰 조정 가능합니다.</li>
+              </ul>
+
+              <h2>포함 사항</h2>
+              <ul>
+                <li>소스 코드 전체 이관</li>
+                <li>개발 문서 (API 명세서, DB 스키마, 배포 가이드)</li>
+                <li>1개월 무상 하자 보수</li>
+                <li>배포 환경 세팅 (1회)</li>
+              </ul>
+
+              <h2>불포함 사항</h2>
+              <ul>
+                <li>서버 호스팅 비용 (AWS, Vercel 등)</li>
+                <li>도메인 구매 비용</li>
+                <li>외부 유료 API 사용 비용</li>
+                <li>하자 보수 기간 이후 유지보수</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- PAGE: 공수계산서 (Man-day Calculation)           -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="page-manday" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>공수계산서</h1>
+              <blockquote>기능별 개발 공수(Man-Day)를 산출하여 일정과 비용의 근거를 제시합니다.</blockquote>
+
+              <h2>공수 요약</h2>
+              <table>
+                <tr><th>구분</th><th>공수 (M/D)</th><th>비율</th></tr>
+                                <tr><td>분석/설계</td><td>5 M/D</td><td>14.7%</td></tr>
+                <tr><td>데이터 엔지니어링 (ETL·정제·매핑)</td><td>10 M/D</td><td>29.4%</td></tr>
+                <tr><td>KPI 로직 (DAX)</td><td>5 M/D</td><td>14.7%</td></tr>
+                <tr><td>대시보드/시각화</td><td>7.5 M/D</td><td>22.0%</td></tr>
+                <tr><td>운영/배포</td><td>2 M/D</td><td>5.9%</td></tr>
+                <tr><td>QA/검증</td><td>2.5 M/D</td><td>7.4%</td></tr>
+                <tr><td>문서화</td><td>2 M/D</td><td>5.9%</td></tr>
+                <tr><th>합계</th><th>34 M/D</th><th>100%</th></tr>
+              </table>
+
+              <h2>기능별 상세 공수</h2>
+              <table>
+                <thead>
+                  <tr><th>기능</th><th>세부 작업</th><th>담당</th><th>공수 (M/D)</th></tr>
+                </thead>
+                <tbody>
+                                    <tr><td rowspan="3">착수 · 소스 분석</td><td>전산팀 협의, DB 읽기 계정·스키마 확인, 접근 테스트</td><td>분석/설계</td><td>1</td></tr>
+                  <tr><td>ERP 4종·QMS 5종 테이블 구조 파악, ITP 엑셀 시트 구조 분석</td><td>분석/설계</td><td>1</td></tr>
+                  <tr><td>KPI 산식·실패비용 산정 기준 확정 협의, 코드 정의서 검토</td><td>분석/설계</td><td>1</td></tr>
+                  <tr><td rowspan="3">Power Query ETL</td><td>ERP 커넥터 4종 (수입검사리스트·합부현황·품목·S오더)</td><td>데이터</td><td>2</td></tr>
+                  <tr><td>QMS 커넥터 5종 (부적합등록·부적합정보·협력업체부적합·실패비용·F오더)</td><td>데이터</td><td>2.5</td></tr>
+                  <tr><td>엑셀 ITP 정합성 커넥터 (네트워크 공유 경로, 시트 스키마 변동 대응)</td><td>데이터</td><td>1.5</td></tr>
+                  <tr><td rowspan="3">정제 · 통합</td><td>결측·형식 표준화(날짜·수량·금액), 데이터 타입 정규화</td><td>데이터</td><td>1</td></tr>
+                  <tr><td>ERP-QMS 코드 통일 매핑 테이블 구축 (부적합 유형·원인·업체·장치)</td><td>데이터</td><td>1.5</td></tr>
+                  <tr><td>중복 제거 규칙 정의, S오더↔F오더 매핑 로직 구현</td><td>데이터</td><td>1.5</td></tr>
+                  <tr><td rowspan="2">데이터 모델</td><td>스타 스키마 설계 (팩트 2종 · 디멘션 5종), 관계·카디널리티 설정</td><td>데이터</td><td>1.2</td></tr>
+                  <tr><td>날짜 테이블 생성, 시간 인텔리전스 기반 마킹</td><td>데이터</td><td>0.8</td></tr>
+                  <tr><td rowspan="4">KPI · DAX</td><td>기본 KPI 7종 (전체검사·부적합 건수/율, 공정부적합 건수/율, NCR 발행·접수)</td><td>로직</td><td>1.5</td></tr>
+                  <tr><td>분석 KPI 7종 (검사추이, 부적합 유형·원인, ITP 정합율 누적·추이, TOP5 업체, 장치별)</td><td>로직</td><td>1.5</td></tr>
+                  <tr><td>전월 대비·전년 동기 비교 측정값 세트 (KPI별 3종 구성)</td><td>로직</td><td>1.2</td></tr>
+                  <tr><td>실패비용 산출 로직 (합의된 집계·배부 기준 반영)</td><td>로직</td><td>0.8</td></tr>
+                  <tr><td rowspan="4">메인 대시보드</td><td>커스텀 테마 JSON 제작 (다크 배색·폰트 스케일·대비비 표준화)</td><td>시각화</td><td>1</td></tr>
+                  <tr><td>KPI 카드 7종 (전월 실적값·증감률 병기 레이아웃)</td><td>시각화</td><td>1.2</td></tr>
+                  <tr><td>차트 7종 (이중축 콤보 · 도넛 2종 · 도넛 게이지 · TOP5 테이블 · 누적막대 2종)</td><td>시각화</td><td>2.3</td></tr>
+                  <tr><td>대형 모니터 풀스크린 그리드 최적화 · 원거리 가독성 조정</td><td>시각화</td><td>1</td></tr>
+                  <tr><td rowspan="2">비교 페이지 · 필터</td><td>전년도 비교·추이 페이지 구성 (14개 KPI 나란히 표시)</td><td>시각화</td><td>1.2</td></tr>
+                  <tr><td>슬라이서 구현 (검사구분·기간·업체·장치), 페이지 간 필터 동기화</td><td>시각화</td><td>0.8</td></tr>
+                  <tr><td rowspan="2">운영 · 배포</td><td>온프렘 데이터 게이트웨이 설치·구성, 데이터 원본 등록</td><td>운영</td><td>1</td></tr>
+                  <tr><td>새로고침 스케줄 설정, 게시, 접근 권한 분리 설정</td><td>운영</td><td>1</td></tr>
+                  <tr><td rowspan="2">QA · 검증</td><td>원본 시스템 조회 결과 대비 KPI 대사 검증 (마일스톤별 2회)</td><td>QA</td><td>1.5</td></tr>
+                  <tr><td>필터 조합 통합 테스트, 현장 표출 환경 검증, 새로고침 실패 시나리오 점검</td><td>QA</td><td>1</td></tr>
+                  <tr><td rowspan="2">산출물 문서</td><td>데이터 모델·DAX 정의서, 데이터 매핑 정의서(코드·오더 매핑)</td><td>문서</td><td>1.2</td></tr>
+                  <tr><td>새로고침·게시·권한 설정 문서, 운영 가이드</td><td>문서</td><td>0.8</td></tr>
+                </tbody>
+              </table>
+
+              <h2>산정 기준</h2>
+              <ul>
+                <li>1 M/D = 8시간 기준 (1인 1일 작업량)</li>
+                <li>주 5일 근무 기준</li>
+                <li>버퍼 10~15% 포함</li>
+                <li>유사 프로젝트 수행 경험 기반 효율적 개발</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- PAGE: PRD                                       -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="page-prd" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>PRD (Product Requirements Document)</h1>
+              <blockquote>프로젝트 요구사항을 정의하고 기능 범위를 명확히 합니다.</blockquote>
+
+              <h2>1. 프로젝트 배경 및 목적</h2>
+              
+              <p>수입검사·부적합 데이터가 <strong>ERP(수입/완성검사) · QMS(부적합관리) · 오프라인 엑셀(ITP 정합성)</strong> 3곳에 분산되어 있어,
+              현황 파악을 위해 매번 수작업 취합이 필요하고 코드 체계 차이·중복 집계로 인한 오류가 발생하기 쉬운 상태입니다.</p>
+              <p>본 프로젝트의 목적은 3개 소스를 <strong>하나의 ETL 파이프라인으로 통합</strong>하여
+              14개 KPI와 실패비용을 자동 집계하고, 이를 특정 공간의 <strong>대형 모니터에 상시 표출(풀스크린)</strong>하여
+              품질 현황을 팀 전체가 실시간으로 공유하도록 하는 것입니다.</p>
+              <h3>목표 지표</h3>
+              <ul>
+                <li>수작업 취합 시간 제거 — 최소 일 1회 무인 자동 새로고침으로 상시 최신 상태 유지</li>
+                <li>원본 대비 KPI 집계 오차 0 — 코드 통일·중복 제거 규칙을 정의서로 명문화하고 대사 검증표로 증빙</li>
+                <li>재발 방지 지원 — 부적합 유형·원인·공급업체·장치별 다차원 분석 제공</li>
+                <li>품질 투자 의사결정 근거 확보 — 실패비용 정량화 및 전년도 동기 대비 개선 추이 확인</li>
+              </ul>
+
+              <h2>2. 사용자 정의</h2>
+              <table>
+                <thead>
+                  <tr><th>사용자 유형</th><th>설명</th><th>주요 기능</th></tr>
+                </thead>
+                <tbody>
+                                    <tr><td>품질관리 담당자</td><td>일상적인 검사·부적합 현황 모니터링</td><td>기본 KPI 조회, 부적합 유형·원인별 분류 확인, NCR 발행·접수 건수 확인, ITP 정합율·추이 확인</td></tr>
+                  <tr><td>품질보증팀 관리자</td><td>분석 및 의사결정</td><td>TOP5 부적합 공급업체·장치별 건수 확인, 실패비용 금액 확인, 전년 동기 비교, 기간·업체·장치 조건별 분석</td></tr>
+                  <tr><td>시스템 운영 담당자</td><td>데이터 갱신 및 접근 통제 운영</td><td>게이트웨이 자동 새로고침 상태 확인, 새로고침 실패 시 조치, 열람 권한 부여·회수</td></tr>
+                  <tr><td>현장 표출 (무인)</td><td>대형 모니터 상시 풀스크린 표출</td><td>자동 새로고침 결과 반영, 원거리 판독 가독성, 무인 환경 지속 표출</td></tr>
+                </tbody>
+              </table>
+
+              <h2>3. 기능 요구사항</h2>
+              
+              <h3>3.1 데이터 연동 (ETL)</h3>
+              <ul>
+                <li><strong>[필수]</strong> ERP 직접 DB 조회 — 수입검사리스트, 합부현황, 품목, S오더</li>
+                <li><strong>[필수]</strong> QMS 직접 DB 조회 — 부적합등록, 부적합정보, 협력업체부적합, 실패비용, F오더</li>
+                <li><strong>[필수]</strong> 오프라인 엑셀 연동 — 네트워크 공유 경로의 ITP 정합성 시트, 일간 갱신 대응</li>
+                <li><strong>[필수]</strong> 증분/전체 새로고침 정책 수립 — 데이터량에 따라 착수 단계에서 확정</li>
+              </ul>
+
+              <h3>3.2 정제 · 통합</h3>
+              <ul>
+                <li><strong>[필수]</strong> 결측·형식 표준화 (날짜·수량·금액·코드 값)</li>
+                <li><strong>[필수]</strong> ERP-QMS 코드 체계 통일 — 부적합 유형·원인·공급업체·장치 코드 매핑 테이블</li>
+                <li><strong>[필수]</strong> 중복 제거 규칙 정의 및 적용</li>
+                <li><strong>[필수]</strong> S오더(ERP) ↔ F오더(QMS) 매핑 로직</li>
+                <li><strong>[필수]</strong> 스타 스키마 데이터 모델 (검사 팩트 · 부적합 팩트 + 날짜·업체·장치·유형·원인 디멘션)</li>
+              </ul>
+
+              <h3>3.3 KPI 및 측정 로직 (DAX)</h3>
+              <ul>
+                <li><strong>[필수]</strong> 기본 KPI 7종 — ① 전체검사건수 ② 부적합건수 ③ 부적합률(%) ④ 공정부적합건수 ⑤ 공정부적합률(%) ⑥ NCR 발행 ⑦ NCR 접수</li>
+                <li><strong>[필수]</strong> 분석 KPI 7종 — ⑧ 검사 건수 추이(월별) ⑨ 부적합 유형 현황 ⑩ 부적합 원인 현황 ⑪ ITP 정합율(누적실적) ⑫ TOP5 부적합 공급업체(구성비 포함) ⑬ 장치별 부적합 건수 ⑭ ITP 정합율 추이(월별)</li>
+                <li><strong>[필수]</strong> 전월 대비 증감 — 화면 초안 KPI 카드의 전월 실적값·증감률(▲▼%) 표기 구현</li>
+                <li><strong>[필수]</strong> 전년 동기 비교 — 14개 KPI 전체에 대한 전년 동기 측정값 세트</li>
+                <li><strong>[필수]</strong> 실패비용 산출 — 합의된 집계·배부 기준에 따른 기간별 금액 집계</li>
+              </ul>
+
+              <h3>3.4 대시보드 화면</h3>
+              <ul>
+                <li><strong>[필수]</strong> 메인 대시보드 — 화면 구성 초안의 14개 구성요소를 3단 그리드로 배치 (KPI 카드 7종 / 추이·도넛·게이지 4종 / 테이블·막대 3종)</li>
+                <li><strong>[필수]</strong> 시각화 유형 — 이중 Y축 콤보(검사 건수 추이), 도넛 2종(유형·원인), 도넛 게이지(ITP 정합율 누적), 순위 테이블(TOP5, 구성비% 포함), 누적 막대 이중축 2종(장치별·ITP 추이)</li>
+                <li><strong>[필수]</strong> 슬라이서 — 검사구분(화면 초안 우측 상단 드롭다운), 기간, 공급업체, 장치</li>
+                <li><strong>[필수]</strong> 전년도 비교·추이 페이지 — 14개 KPI 전년 동기 수치 나란히 표시</li>
+                <li><strong>[필수]</strong> 대형 모니터 풀스크린 보기 — 커스텀 테마(다크 배색) 적용, 원거리 가독성 확보</li>
+                <li><strong>[선택]</strong> 페이지 자동 전환(순환 표출) — 상시 표출 운영 방식에 따라 협의</li>
+              </ul>
+
+              <h3>3.5 운영 · 배포</h3>
+              <ul>
+                <li><strong>[필수]</strong> 온프렘 데이터 게이트웨이 설치 및 데이터 원본 등록</li>
+                <li><strong>[필수]</strong> 자동 새로고침 스케줄 — 최소 일 1회 이상 (엑셀 ITP 일간 갱신 기준, 정확한 주기는 착수 시 확정)</li>
+                <li><strong>[필수]</strong> 새로고침 실패 시 이전 데이터 유지 및 알림</li>
+                <li><strong>[필수]</strong> 게시 및 접근 권한 분리 — 지정 인원만 열람, 미승인 사용자 접근 차단</li>
+              </ul>
+
+              <h3>3.6 수용 기준 (검수 기준)</h3>
+              <table>
+                <thead><tr><th>스토리</th><th>수용 기준</th></tr></thead>
+                <tbody>
+                  <tr><td>기본 KPI를 한 화면에서 조회</td><td>대시보드를 열면 최신 새로고침 기준 기본 KPI가 표시된다</td></tr>
+                  <tr><td>부적합 유형·원인별 확인</td><td>기간 선택 시 해당 기간 부적합이 유형·원인별 건수로 분류되어 표시된다</td></tr>
+                  <tr><td>TOP5 공급업체·장치별 조회</td><td>조회 시 건수 상위 5개 공급업체와 장치별 부적합 건수가 표시된다</td></tr>
+                  <tr><td>NCR 발행·접수 확인</td><td>조회 시 기간 내 NCR 발행·접수 건수가 함께 표시된다</td></tr>
+                  <tr><td>ITP 정합율·추이 확인</td><td>엑셀 ITP 갱신 후 다음 새로고침 시 정합율·추이가 최신 값으로 갱신된다</td></tr>
+                  <tr><td>전년 동기 비교</td><td>연도 비교 선택 시 14개 KPI가 전년도 동기 수치와 나란히 표시된다</td></tr>
+                  <tr><td>실패비용 금액 확인</td><td>조회 시 합의된 산정 기준으로 집계된 실패비용이 기간별로 표시된다</td></tr>
+                  <tr><td>조건별 분석</td><td>필터 조건 선택 시 모든 KPI가 조건에 맞게 재계산되어 표시된다</td></tr>
+                  <tr><td>자동 갱신</td><td>스케줄 시각에 게이트웨이로 ERP·QMS·엑셀이 자동 새로고침되어 반영된다</td></tr>
+                  <tr><td>열람 통제</td><td>게시된 대시보드에 권한 없는 사용자가 접근하면 열람이 차단된다</td></tr>
+                </tbody>
+              </table>
+
+              <h2>4. 비기능 요구사항</h2>
+              <table>
+                <thead>
+                  <tr><th>항목</th><th>요구사항</th></tr>
+                </thead>
+                <tbody>
+                                    <tr><td>데이터 정확성</td><td>원본 시스템 조회 결과 대비 KPI 집계 오차 0. 마일스톤별 대사 검증표 제출로 증빙</td></tr>
+                  <tr><td>갱신 주기</td><td>최소 일 1회 이상 자동 새로고침. 엑셀 ITP 일간 갱신 기준, 정확한 주기는 착수 단계 확정</td></tr>
+                  <tr><td>장애 대응</td><td>새로고침 실패 시 이전 데이터 유지 및 담당자 알림. 화면 정지·오류 표출 방지</td></tr>
+                  <tr><td>가독성</td><td>대형 모니터 풀스크린 기준 원거리 판독 가능한 폰트 스케일 및 대비비 확보. 실제 표출 환경에서 검증</td></tr>
+                  <tr><td>보안</td><td>게시 후 지정 인원만 열람. 미승인 사용자 접근 차단. DB는 읽기 전용 계정만 사용</td></tr>
+                  <tr><td>성능</td><td>필터 조작 시 화면 재계산 지연 최소화. 데이터량에 따라 증분 새로고침 및 집계 테이블 적용 검토</td></tr>
+                  <tr><td>유지보수성</td><td>코드 매핑·오더 매핑 규칙을 정의서로 문서화하여 발주처가 직접 유지·확장 가능하도록 인계</td></tr>
+                  <tr><td>확장성</td><td>정합성 자동 검증 리포트·품질/운영 현황 페이지 등 후속 고도화를 ETL 재작업 없이 페이지 추가로 대응 가능한 모델 구조</td></tr>
+                </tbody>
+              </table>
+
+              <h2>5. 기술 제약사항</h2>
+              
+              <h3>발주처 확정 사항</h3>
+              <ul>
+                <li>데이터 접근 방식: ERP·QMS <strong>직접 DB 접근</strong> (계정·스키마 등 세부는 전산팀 협의)</li>
+                <li>라이선스: <strong>발주처 부담</strong>, 현재 미구매. 상시 표출 요건에 맞는 게시환경·라이선스 선정 후 구매</li>
+                <li>사용 용도: 특정 공간 대형 모니터 <strong>상시 표출(풀스크린)</strong></li>
+              </ul>
+
+              <h3>착수 단계 협의 필요 사항</h3>
+              <p>확정 전까지 임의로 정하지 않고, Phase 1(Day 1–6)에 일괄 협의하여 확정합니다.</p>
+              <table>
+                <thead><tr><th>항목</th><th>확정 필요 시점</th><th>미확정 시 영향</th></tr></thead>
+                <tbody>
+                  <tr><td>직접 DB 접근 세부 (대상 DB·읽기 권한·스키마)</td><td>Day 3</td><td>ETL 착수 불가 — 전체 일정에 직접 영향</td></tr>
+                  <tr><td>오프라인 엑셀 경로 접근 권한 (게이트웨이 PC 기준)</td><td>Day 6</td><td>ITP 정합율 KPI 2종 구현 지연</td></tr>
+                  <tr><td>데이터 새로고침 주기 상세</td><td>Day 10</td><td>증분/전체 새로고침 정책 확정 지연</td></tr>
+                  <tr><td>게시 환경 · 상시 표출 라이선스 종류</td><td>Day 25</td><td>게시·권한 설정 및 현장 표출 검증 지연</td></tr>
+                  <tr><td>실패비용 산정 규칙 (집계·배부 기준)</td><td>Day 12</td><td>실패비용 측정값 구현 보류</td></tr>
+                  <tr><td>부적합 유형·원인 코드 정의서</td><td>Day 6</td><td>코드 통일 매핑 테이블 구축 불가</td></tr>
+                </tbody>
+              </table>
+
+              <h3>기술 제약</h3>
+              <ul>
+                <li>게이트웨이 PC는 ERP·QMS DB 및 엑셀 공유 경로에 상시 네트워크 접근이 가능해야 하며, 무인 자동 새로고침을 위해 상시 전원·상시 온라인 상태여야 합니다.</li>
+                <li>ERP·QMS DB에는 <strong>읽기 전용 계정</strong>만 사용하며, 운영 부하를 고려해 새로고침 시각을 업무 외 시간대로 조정하는 것을 권장합니다.</li>
+                <li>상시 표출 방식(Power BI Service 게시 후 브라우저 풀스크린 / 온프렘 Report Server)에 따라 필요한 라이선스 종류가 달라지므로, 발주처 구매 전 요건을 정리하여 제공해 드립니다.</li>
+              </ul>
+
+              <h2>6. 범위 외 사항 (Out of Scope)</h2>
+              <ul>
+                                <li>ERP·QMS 시스템 자체의 기능 변경 및 커스터마이징</li>
+                <li>정합성 자동 검증 리포트 (확장 범위 — 별도 협의)</li>
+                <li>품질·운영 현황 추가 페이지 (확장 범위 — 별도 협의)</li>
+                <li>사용자 교육 및 운영 인계 프로그램 (확장 범위 — 별도 협의)</li>
+                <li>Power BI 라이선스 구매 비용 (발주처 부담)</li>
+                <li>표시용 모니터·게이트웨이 서버 등 하드웨어 (발주처 자산)</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- PAGE: 일정 제안 (Timeline)                      -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="page-timeline" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>일정 제안</h1>
+              <blockquote>총 40일 기준 단계별 마일스톤 및 산출물을 제안합니다.</blockquote>
+
+              <h2>전체 일정 요약</h2>
+              <table>
+                <thead>
+                  <tr><th>단계</th><th>기간</th><th>주요 산출물</th></tr>
+                </thead>
+                <tbody>
+                                    <tr><td>Phase 1. 착수 · 데이터 소스 분석</td><td>Day 1–6</td><td>데이터 접근 체크리스트, 소스 스키마 분석서, 데이터 매핑 정의서 초안, KPI 산식·실패비용 기준 합의서</td></tr>
+                  <tr><td>Phase 2. ETL · 데이터 모델 구축</td><td>Day 7–17</td><td>Power Query ETL 파이프라인(10종 소스), 코드 통일 매핑 테이블, S오더↔F오더 매핑 로직, 스타 스키마 데이터 모델</td></tr>
+                  <tr><td>Phase 3. KPI · DAX 구현</td><td>Day 18–25</td><td>14개 KPI 측정값, 전월/전년 비교 측정값 세트, 실패비용 산출 로직, 1차 대사 검증표</td></tr>
+                  <tr><td>Phase 4. 대시보드 구현</td><td>Day 26–34</td><td>메인 대시보드(14개 구성요소), 커스텀 테마 JSON, 슬라이서 4종, 전년도 비교·추이 페이지, 풀스크린 최적화</td></tr>
+                  <tr><td>Phase 5. 운영 배포 · 검수</td><td>Day 35–40</td><td>게이트웨이 구성·새로고침 스케줄, 게시·권한 설정, 최종 대사 검증표, 산출물 문서 5종, 인수인계</td></tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <h2 class="mb-4 text-sm font-semibold tracking-[0.14em] text-slate-500">상세 타임라인</h2>
+            <div class="timeline">
+                            <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 1</p>
+                <h4 class="text-base font-semibold text-slate-900">착수 · 데이터 소스 분석</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 1–6</p>
+                <p class="text-sm leading-7 text-slate-600">전산팀과의 협의를 1회 미팅으로 종결하기 위해, 필요한 접근 정보를 체크리스트로 사전 발송합니다. ERP 4종·QMS 5종 테이블과 ITP 엑셀 시트의 구조를 파악하고, KPI 산식과 실패비용 산정 기준을 확정합니다.</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 데이터 접근 체크리스트, 소스 스키마 분석서</li>
+                  <li>산출물: 데이터 매핑 정의서 초안 (코드·오더 매핑 규칙)</li>
+                  <li>산출물: KPI 산식 · 실패비용 산정 기준 합의서</li>
+                  <li>병행: 데이터 확보 대기 중 커스텀 테마·시각화 프로토타입 선행 제작</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 2</p>
+                <h4 class="text-base font-semibold text-slate-900">ETL · 데이터 모델 구축</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 7–17</p>
+                <p class="text-sm leading-7 text-slate-600">Power Query로 3개 소스 10종 데이터를 추출·정제·통합합니다. 본 프로젝트의 핵심 난이도 구간으로, ERP-QMS 코드 통일과 S오더↔F오더 매핑을 통해 중복 집계를 제거합니다.</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: Power Query ETL 파이프라인 (ERP 4 · QMS 5 · 엑셀 ITP)</li>
+                  <li>산출물: 코드 통일 매핑 테이블 (유형·원인·업체·장치)</li>
+                  <li>산출물: 스타 스키마 데이터 모델 (팩트 2 · 디멘션 5 · 날짜 테이블)</li>
+                  <li>검증: 통합 테이블 건수와 원본 시스템 조회 건수 일치 확인</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 3</p>
+                <h4 class="text-base font-semibold text-slate-900">KPI · DAX 구현</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 18–25</p>
+                <p class="text-sm leading-7 text-slate-600">14개 KPI 측정값을 구현하고, 화면 초안에 반영된 전월 대비 증감과 전년 동기 비교를 위한 측정값 세트를 타임 인텔리전스로 구성합니다. 실패비용은 합의된 집계·배부 기준을 그대로 반영합니다.</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 기본 KPI 7종 · 분석 KPI 7종 측정값</li>
+                  <li>산출물: 전월 대비 · 전년 동기 비교 측정값 세트</li>
+                  <li>산출물: 실패비용 산출 로직</li>
+                  <li>검증: 원본 대비 KPI 대사 검증표 1차 제출 (오차 0 확인)</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 4</p>
+                <h4 class="text-base font-semibold text-slate-900">대시보드 구현</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 26–34</p>
+                <p class="text-sm leading-7 text-slate-600">화면 구성 초안을 그대로 구현합니다. 다크 배색을 커스텀 테마 파일로 표준화하고, 이중축 콤보·도넛 게이지·누적 막대 등 시각화 유형별로 개별 구성한 뒤 대형 모니터 해상도 기준으로 그리드를 확정합니다.</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 메인 대시보드 (14개 구성요소)</li>
+                  <li>산출물: Power BI 커스텀 테마 JSON</li>
+                  <li>산출물: 슬라이서 4종 (검사구분·기간·업체·장치)</li>
+                  <li>산출물: 전년도 비교·추이 페이지</li>
+                  <li>검증: 실제 표출 해상도 기준 원거리 가독성 확인</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 5</p>
+                <h4 class="text-base font-semibold text-slate-900">운영 배포 · 검수</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 35–40</p>
+                <p class="text-sm leading-7 text-slate-600">온프렘 게이트웨이를 구성하고 자동 새로고침 스케줄을 설정합니다. 게시 후 지정 인원만 열람 가능하도록 권한을 분리하고, 최종 대사 검증과 함께 산출물 문서 5종을 인계합니다.</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 게이트웨이 구성 · 새로고침 스케줄</li>
+                  <li>산출물: 게시 · 접근 권한 설정 문서</li>
+                  <li>산출물: 최종 대사 검증표 (전 KPI 오차 0)</li>
+                  <li>산출물: 데이터 모델·DAX 정의서, 데이터 매핑 정의서, 운영 가이드</li>
+                  <li>검증: 무인 자동 새로고침 결과가 상시 표출 화면에 반영되는지 현장 확인</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h2>마일스톤 체크포인트</h2>
+              <table>
+                <thead>
+                  <tr><th>마일스톤</th><th>시점</th><th>검수 기준</th></tr>
+                </thead>
+                <tbody>
+                                    <tr><td>M1. 데이터 소스 연결 완료</td><td>Day 6</td><td>ERP·QMS DB 및 엑셀 경로 연결 성공, 데이터 매핑 정의서 초안 승인</td></tr>
+                  <tr><td>M2. ETL · 데이터 모델 완료</td><td>Day 17</td><td>통합 테이블 건수가 원본 시스템 조회 건수와 일치, 중복 제거·오더 매핑 규칙 적용 확인</td></tr>
+                  <tr><td>M3. KPI · DAX 완료</td><td>Day 25</td><td>14개 KPI 및 실패비용이 원본 대비 오차 0, 전월/전년 비교 측정값 동작 확인</td></tr>
+                  <tr><td>M4. 대시보드 완료</td><td>Day 34</td><td>14개 구성요소 표출, 슬라이서 4종 연동 시 전체 KPI 재계산, 풀스크린 가독성 확인</td></tr>
+                  <tr><td>M5. 게시 · 검수 완료</td><td>Day 40</td><td>스케줄 자동 새로고침 성공, 권한 없는 사용자 접근 차단 확인, 산출물 문서 5종 인계</td></tr>
+                </tbody>
+              </table>
+
+              <h2>커뮤니케이션 계획</h2>
+              <table>
+                <tr><th>항목</th><th>방식</th><th>주기</th></tr>
+                <tr><td>일일 진행 공유</td><td>Slack / 카카오톡</td><td>매일</td></tr>
+                <tr><td>주간 미팅</td><td>Zoom / Google Meet</td><td>주 1회</td></tr>
+                <tr><td>마일스톤 리뷰</td><td>화면 공유 + 문서</td><td>단계 완료 시</td></tr>
+                <tr><td>이슈 트래킹</td><td>GitHub Issues</td><td>상시</td></tr>
+              </table>
+            </article>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- PAGE: 포트폴리오 (Portfolio)                     -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="page-portfolio" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>유사 프로젝트 경험</h1>
+              <blockquote>본 프로젝트와 유사한 기능/기술 스택을 활용한 수행 경험을 소개합니다.</blockquote>
+            </article>
+          </div>
+
+          <!-- Stats row -->
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">14</p>
+              <p class="mt-1 text-xs text-slate-500">대시보드 KPI 구성요소</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">3</p>
+              <p class="mt-1 text-xs text-slate-500">통합 데이터 소스</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">40일</p>
+              <p class="mt-1 text-xs text-slate-500">제안 기간</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">34 M/D</p>
+              <p class="mt-1 text-xs text-slate-500">총 투입 공수</p>
+            </div>
+          </div>
+
+          <!-- Portfolio cards -->
+          <div class="space-y-4">
+                        <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">핀테크 · B2B SaaS</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">VC 투자조합 관리 · 업무 자동화 플랫폼</h3>
+              <p class="mt-1 text-xs text-slate-400">핀테크 / 펀드 관리 · 2023.11–2024.12 (14개월)</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>GP(운용사) · LP(출자자) · 스타트업을 연결하는 투자 라이프사이클 통합 플랫폼입니다. 파편화된 엑셀·이메일 기반 업무를 단일 데이터 모델 위로 통합하고, 원본 데이터에서 규제 보고 양식을 자동 생성하는 구조를 구축했습니다.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>80+ 데이터 엔티티 · 22개 도메인 모듈 기반 통합 데이터 모델</li>
+                  <li>VICS 규제 5종 양식 — 원본 데이터 자동 집계 → 정형 리포트 생성 → SFTP 자동 제출</li>
+                  <li>GP/LP 역할별 전용 대시보드 및 열람 범위 분리</li>
+                  <li>AI 투자심사보고서 자동 생성 (ChatGPT API 연동)</li>
+                  <li>PR 1,652건 · 50+ 페이지 · 179개 DB 마이그레이션</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>본 프로젝트의 <strong>「이종 소스 통합 → 정형 KPI 자동 집계 → 검증 가능한 리포트 산출」 구조와 동일</strong>합니다. VICS 규제 보고는 수작업으로 수일이 걸리던 집계를 원본 데이터에서 자동 생성하고, 제출 전 원본 대비 검증을 거치는 파이프라인이었습니다. 본 건의 「원본 대비 KPI 집계 오차 없음」 요구와 대사 검증 방식이 그대로 대응됩니다. 또한 LP별 열람 범위 분리 경험은 「지정 인원만 열람」 권한 요구에 직접 적용됩니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js 13</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">NestJS 10</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MySQL</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">TypeORM</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">AWS</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">CloudFormation</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">80+ 엔티티 데이터 모델</span>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">핀테크 · 데이터 파이프라인</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">P2P 크라우드펀딩 플랫폼</h3>
+              <p class="mt-1 text-xs text-slate-400">핀테크 / P2P 대출 · 2019.12–2020.01</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>투자자·차입자·운영자를 연결하는 P2P 렌딩 플랫폼으로, 다수의 외부 시스템에서 유입되는 데이터를 정합성 있게 통합하고 배치 자동화로 운영하는 구조를 담당했습니다.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>7+ 외부 프로바이더 · 15+ API 접점 통합 (인증·결제·정산·알림)</li>
+                  <li>이중 DB 라우팅 기반 레거시 → 신규 시스템 무중단 데이터 이관</li>
+                  <li>3개 크론잡 자동 운영 — 연체 감지 · 정산 · 가상계좌 이관</li>
+                  <li>금융 계산 엔진 자체 구현 (원리금 균등상환, XIRR 수익률, 영업일 인식 정산)</li>
+                  <li>회원·대출·투자·결제·통계 통합 관리자 대시보드 (200+ API)</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>본 건의 <strong>이종 시스템 데이터 정합성 확보 및 스케줄 배치 자동화</strong>와 직결됩니다. 서로 다른 코드 체계를 가진 외부 시스템 데이터를 하나의 스키마로 정규화하고, 이관 과정에서 건수·금액이 원본과 일치하는지 대사하는 작업을 반복 수행했습니다. 3개 크론잡의 무인 배치 운영 경험은 본 건의 <strong>게이트웨이 자동 새로고침 및 실패 시 이전 데이터 유지·알림</strong> 설계에 그대로 적용됩니다. 차트 기반 통계 대시보드 구축 경험도 보유하고 있습니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Python</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Django</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MySQL</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">amCharts</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">크론 배치 자동화</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">이중 DB 라우팅</span>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">B2B SaaS · 어드민</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">기업용 전자결재 · 규제 보고 SaaS</h3>
+              <p class="mt-1 text-xs text-slate-400">B2B SaaS / 기업용 소프트웨어 · 2026.01–2026.03 (9주)</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>다단계 결재 워크플로우와 규제 보고를 단일 시스템으로 처리하는 기업용 SaaS입니다. 다차원 조회가 필요한 어드민 대시보드와 세분화된 열람 권한 체계를 구축했습니다.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>34개 엔티티 · 120–150 API 엔드포인트 · 50+ 페이지 규모의 어드민 대시보드</li>
+                  <li>7개 사용자 역할 × 6계층 보안 구조 — 역할별 데이터 열람 범위 분리</li>
+                  <li>다단계 전자결재 엔진 (8종 결재 액션)</li>
+                  <li>토큰 기반 외부 셀프서비스 포탈 — 미인증 접근 차단</li>
+                  <li>PR 504건 · 9주 딜리버리</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>본 건의 <strong>필터 기반 다차원 조회 화면과 열람 권한 분리</strong>에 대응합니다. 여러 조건(기간·조직·상태·유형)을 조합해 동일 데이터를 다른 관점으로 재집계하는 어드민 화면을 다수 구축했으며, 이는 본 건의 「필터 조건 선택 시 모든 KPI가 조건에 맞게 재계산」 요구와 동일한 설계 과제입니다. 권한 없는 사용자의 접근 차단 역시 6계층 보안 구조로 구현한 경험이 있습니다. 또한 <strong>9주 만에 완료</strong>한 딜리버리로 본 건의 40일 일정 준수 역량을 뒷받침합니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">NestJS 10</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js 13</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">TypeScript</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MySQL</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">CASL(권한)</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MUI v5</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Docker</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 to-brand-50 p-6 text-center shadow-soft md:p-10">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">함께 만들어 가겠습니다</h2>
+            <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">프로젝트에 대해 더 자세한 논의를 원하시면 미팅을 신청해 주세요.</p>
+          </div>
+        </div>
+
+        <!-- ─── Bottom Page Navigation ─── -->
+        <div id="page-nav" class="mt-6 flex items-center justify-between gap-4" style="display:none;">
+          <a id="nav-prev" href="#home"
+             class="group flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-3 shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+            <svg class="w-5 h-5 text-slate-400 transition group-hover:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <span>
+              <span class="block text-xs text-slate-400">이전</span>
+              <span id="nav-prev-label" class="block text-sm font-semibold text-slate-700 group-hover:text-sky-700">홈</span>
+            </span>
+          </a>
+          <a id="nav-next" href="#overview"
+             class="group flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-3 shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white text-right ml-auto">
+            <span>
+              <span class="block text-xs text-slate-400">다음</span>
+              <span id="nav-next-label" class="block text-sm font-semibold text-slate-700 group-hover:text-sky-700">프로젝트 소개</span>
+            </span>
+            <svg class="w-5 h-5 text-slate-400 transition group-hover:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+      </main>
+    </div>
+
+    <footer class="mt-10 border-t border-slate-200 pt-6 text-xs text-slate-500">
+      &copy; 2026 &middot; 본 제안서는 수입검사실 품질 대시보드(Power BI) 구축 프로젝트를 위해 작성되었습니다.
+    </footer>
+  </div>
+
+  <!-- ─── SPA Router ─── -->
+  <script>
+    const pages = ['home', 'overview', 'estimate', 'manday', 'prd', 'timeline', 'portfolio'];
+    const pageLabels = {
+      home: '홈', overview: '프로젝트 소개', estimate: '견적서',
+      manday: '공수계산서', prd: 'PRD', timeline: '일정 제안', portfolio: '유사 프로젝트 경험'
+    };
+
+    function navigate(pageId) {
+      if (!pages.includes(pageId)) pageId = 'home';
+      // Hide all pages
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+      // Show target
+      const target = document.getElementById('page-' + pageId);
+      if (target) target.classList.add('active');
+      // Update nav
+      document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.dataset.page === pageId) {
+          link.className = 'nav-link block rounded-xl border px-3 py-2 text-sm border-sky-200 bg-sky-50 font-medium text-sky-700';
+        } else {
+          link.className = 'nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900';
+        }
+      });
+      // Update bottom page navigation
+      updatePageNav(pageId);
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Close mobile sidebar
+      closeSidebar();
+    }
+
+    function updatePageNav(pageId) {
+      const nav = document.getElementById('page-nav');
+      const idx = pages.indexOf(pageId);
+      const prevBtn = document.getElementById('nav-prev');
+      const nextBtn = document.getElementById('nav-next');
+      const prevLabel = document.getElementById('nav-prev-label');
+      const nextLabel = document.getElementById('nav-next-label');
+
+      // Show nav on all pages except home
+      nav.style.display = (pageId === 'home') ? 'none' : 'flex';
+
+      // Previous button
+      if (idx > 0) {
+        prevBtn.href = '#' + pages[idx - 1];
+        prevLabel.textContent = pageLabels[pages[idx - 1]];
+        prevBtn.style.visibility = 'visible';
+      } else {
+        prevBtn.style.visibility = 'hidden';
+      }
+
+      // Next button
+      if (idx < pages.length - 1) {
+        nextBtn.href = '#' + pages[idx + 1];
+        nextLabel.textContent = pageLabels[pages[idx + 1]];
+        nextBtn.style.visibility = 'visible';
+      } else {
+        nextBtn.style.visibility = 'hidden';
+      }
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-backdrop').classList.remove('open');
+    }
+
+    // Hash routing
+    function handleHash() {
+      const hash = (location.hash || '#home').replace('#', '');
+      navigate(hash);
+    }
+    window.addEventListener('hashchange', handleHash);
+    window.addEventListener('DOMContentLoaded', handleHash);
+
+    // Mobile sidebar toggle
+    document.getElementById('sidebar-toggle').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-backdrop').classList.toggle('open');
+    });
+  </script>
+</body>
+</html>
